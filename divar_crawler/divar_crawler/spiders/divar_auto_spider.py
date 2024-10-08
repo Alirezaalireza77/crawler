@@ -55,17 +55,52 @@
 #             self.driver.quit()
 
 
+#
+# import scrapy
+#
+# class DivarSpider(scrapy.Spider):
+#     name = 'divar_auto'
+#     allowed_domains = ['divar.ir']
+#     start_urls = ['https://divar.ir/s/shiraz/auto?page=2']
+#     download_delay = 1  # Introduce a 1-second delay
+#
+#     def parse(self, response):
+#         for item in response.xpath('//div[@class="post-list__widget-col-c1444"]'):
+#             title = item.xpath('.//h2/text()').get()
+#             price = item.xpath('.//div[@class="kt-post-card__description"][2]/text()').get()
+#
+#             yield {
+#                 'title': title,
+#                 'price': price,
+#             }
+#
+#         next_page = response.xpath('//a[@class="next-page"]/@href').get()
+#         if next_page:
+#             yield scrapy.Request(next_page, callback=self.parse)
+#
+#
+#
+
+
 
 import scrapy
 
 class DivarSpider(scrapy.Spider):
     name = 'divar_auto'
     allowed_domains = ['divar.ir']
-    start_urls = ['https://divar.ir/s/shiraz/auto?page=2']
+    start_urls = ['https://divar.ir/s/shiraz/auto?page=1']
     download_delay = 1  # Introduce a 1-second delay
+    page_number = 1  # Track the current page number
 
     def parse(self, response):
-        for item in response.xpath('//div[@class="post-list__widget-col-c1444"]'):
+        items = response.xpath('//div[@class="post-list__widget-col-c1444"]')
+
+        if not items:
+            # Stop the crawl if no more items are found
+            self.logger.info("No more items found. Stopping.")
+            return
+
+        for item in items:
             title = item.xpath('.//h2/text()').get()
             price = item.xpath('.//div[@class="kt-post-card__description"][2]/text()').get()
 
@@ -74,6 +109,9 @@ class DivarSpider(scrapy.Spider):
                 'price': price,
             }
 
-        next_page = response.xpath('//a[@class="next-page"]/@href').get()
-        if next_page:
-            yield scrapy.Request(next_page, callback=self.parse)
+        # Increment the page number for the next request
+        self.page_number += 1
+        next_page = f'https://divar.ir/s/shiraz/auto?page={self.page_number}'
+
+        # Send a request for the next page
+        yield scrapy.Request(next_page, callback=self.parse)
