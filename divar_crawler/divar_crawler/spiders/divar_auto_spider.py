@@ -1,3 +1,5 @@
+import time
+
 import scrapy
 
 class DivarSpider(scrapy.Spider):
@@ -10,6 +12,7 @@ class DivarSpider(scrapy.Spider):
     def parse(self, response):
         items = response.xpath('//div[@class="post-list__widget-col-c1444"]')
         for item in items:
+            time.sleep(2)
             title = item.xpath('.//h2/text()').get()
             price = item.xpath('.//div[@class="kt-post-card__description"][2]/text()').get()
             yield {
