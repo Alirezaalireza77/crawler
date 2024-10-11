@@ -36,21 +36,21 @@ class DivarSpider(scrapy.Spider):
 
     brand_index = 0
 
-    def start_request(self):
+    def start_requests(self):
         brand = self.brands[self.brand_index]
         url = f'https://api.divar.ir/v8/web-search/shiraz/car?q={brand}'
-        yield scrapy.request(url=url, callback=self.parse, meta={'brand': brand})
+        yield scrapy.Request(url=url, callback=self.parse, meta={'brand': brand})
 
     def parse(self, response):
-        data = json.load(response.text)
+        data = json.loads(response.text)
         brand =response.meta['brand']
 
         for car in data.get('list_widgets',[]):
             yield {
                 'brand': brand,
                 'title': car['data']['title'],
-                'price': car['data']('middle_description_text'),
-                'milage': car['data']('top_description_text'),
+                'price': car['data']['middle_description_text'],
+                'milage': car['data']['top_description_text'],
                 'city' : car['data']('city', 'shiraz'),
             }
 
