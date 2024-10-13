@@ -10,14 +10,20 @@ class DivarCarSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super(DivarCarSpider, self).__init__(*args, **kwargs)
-        self.brands = [
-            'arisun', 'ario', 'alfa-romeo', 'mvm', 'amico', 'opel', 'swm', 'mg',
-            'iran-khodro', 'baic', 'brilliance', 'mercedes-benz', 'saipa', 'besturn',
-            'bmw', 'pars-khodro', 'peugeot', 'porsche', 'tara', 'renault', 'toyota',
-            'tiba', 'tigard', 'jac', 'jeep', 'dena', 'geely', 'dongfeng', 'chery',
-            'audi', 'respect', 'runna', 'ssangyong', 'saina', 'samand', 'ford',
-            'fownix', 'byd'
-        ]
+        self.brands = ["Audi","Arisan","Ario","Alfa Romeo","Amico","Opel","SWM","SKYWELL","Smart","Škoda","Oldsmobile",
+                       "MG","MVM","Iran Khodro","Isuzu","XTRIM","inroads","Iveco","BAIC","Brilliance","Besturn","Bestune",
+                       "Mercedes-Benz","Borgward","BAC","BMW","BISU","BYD","Buick","PARS KHODRO","Pazhan","Pride","Proton",
+                       "Peugeot","Porsche","Pontiac","Paykan","Tara","Toyota","Tiba","Tigard","Jetour","JAC","Jaguar",
+                       "Joylong","JMC","GAC Gonow","Jeep","Geely","Changan","Chery","Datsun","Domy","Dongfeng","Dayun",
+                       "Daihatsu","Delica","Dena","Dodge","Daewoo","DS","Dignity","Deer","Runna","Rayen","Renault","Rollsroyce",
+                       "Rich","Respect","Rigan","Zamyad","ZX_AUTO","Zotye","SsangYong","Saipa","Saina","Seat","Samand","Soueast",
+                       "Subaru","Suzuki","Citroen","Sinad","Sinogold","Shahin","Chevrolet","Farda","Foton","Ford","Volkswagen",
+                       "Fownix","Fiat","Fidelity","Capra","Chrysler","Quick","KG Mobility","Kia","KMC","Great-Wall","Gac",
+                       "Qingling","Lada","Lamari","Lamborghini","Lexus","Land Rover","Landmark","Lotus","LUCANO","Luxgen",
+                       "Lifan","Maserati","Mazda","Maxmotor","Maxus","Mitsubishi","MINI","NETA","Nissan","Volvo","IranKhodro Van",
+                       "Faw","Narvan","Venucia","VGV","Hafei Lobo","Hummer","Haval","Haima","Hanteng","Honda","Hongqi","Hillman",
+                       "Hyosow","Hyundai","Uaz","other",
+                       ]
 
 
     def start_requests(self):
