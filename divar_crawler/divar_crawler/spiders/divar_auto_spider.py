@@ -1,7 +1,6 @@
 import scrapy
 import json
 import time
-import requests
 import tempfile
 from scrapy.selector import Selector
 from selenium import webdriver
@@ -10,104 +9,106 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 
-# class DivarCarSpider(scrapy.Spider):
-#     name = "divar_auto"
-#     allowed_domains = ["api.divar.ir"]
-#     start_urls = ['https://api.divar.ir/v8/postlist/w/search']
-#
-#
-#     def __init__(self, *args, **kwargs):
-#         super(DivarCarSpider, self).__init__(*args, **kwargs)
-#         self.brands = ["Audi","Arisan","Ario","Alfa Romeo","Amico","Opel","SWM","SKYWELL","Smart","Škoda","Oldsmobile",
-#                        "MG","MVM","Iran Khodro","Isuzu","XTRIM","inroads","Iveco","BAIC","Brilliance","Besturn","Bestune",
-#                        "Mercedes-Benz","Borgward","BAC","BMW","BISU","BYD","Buick","PARS KHODRO","Pazhan","Pride","Proton",
-#                        "Peugeot","Porsche","Pontiac","Paykan","Tara","Toyota","Tiba","Tigard","Jetour","JAC","Jaguar",
-#                        "Joylong","JMC","GAC Gonow","Jeep","Geely","Changan","Chery","Datsun","Domy","Dongfeng","Dayun",
-#                        "Daihatsu","Delica","Dena","Dodge","Daewoo","DS","Dignity","Deer","Runna","Rayen","Renault","Rollsroyce",
-#                        "Rich","Respect","Rigan","Zamyad","ZX_AUTO","Zotye","SsangYong","Saipa","Saina","Seat","Samand","Soueast",
-#                        "Subaru","Suzuki","Citroen","Sinad","Sinogold","Shahin","Chevrolet","Farda","Foton","Ford","Volkswagen",
-#                        "Fownix","Fiat","Fidelity","Capra","Chrysler","Quick","KG Mobility","Kia","KMC","Great-Wall","Gac",
-#                        "Qingling","Lada","Lamari","Lamborghini","Lexus","Land Rover","Landmark","Lotus","LUCANO","Luxgen",
-#                        "Lifan","Maserati","Mazda","Maxmotor","Maxus","Mitsubishi","MINI","NETA","Nissan","Volvo","IranKhodro Van",
-#                        "Faw","Narvan","Venucia","VGV","Hafei Lobo","Hummer","Haval","Haima","Hanteng","Honda","Hongqi","Hillman",
-#                        "Hyosow","Hyundai","Uaz","other",
-#                        ]
-#
-#
-#     def start_requests(self):
-#         yield self.make_request_for_brand(1, 0)
-#
-#
-#     def make_request_for_brand(self, page, brand_index):
-#         brand = self.brands[brand_index]
-#         payload = {
-#             "city_ids": ["6"],
-#             "search_data": {
-#                 "form_data": {
-#                     "data": {
-#                         "brand_model": {
-#                             "repeated_string": {
-#                                 "value": [brand]
-#                             }
-#                         },
-#                         "category": {
-#                             "str": {"value": "light"}
-#                         }
-#                     }
-#                 }
-#             },
-#             "sort": {"str": {"value": "sort_date"}},
-#             "page": page
-#         }
-#
-#         return scrapy.Request(
-#             url='https://api.divar.ir/v8/postlist/w/search',
-#             method="POST",
-#             body=json.dumps(payload),
-#             headers={'Content-Type': 'application/json'},
-#             callback=self.parse,
-#             meta={'brand': brand, 'page': page, 'brand_index': brand_index}
-#         )
-#
-#
-#     def parse(self, response):
-#         brand = response.meta['brand']
-#         page = response.meta['page']
-#         brand_index = response.meta['brand_index']
-#
-#         data = response.json()
-#
-#         for item in data.get('list_widgets', []):
-#             if item.get('widget_type') == 'POST_ROW':
-#                 car_data = item['data']
-#                 title = car_data.get('title')
-#                 price = car_data.get('middle_description_text', 'N/A')
-#                 mileage = car_data.get('top_description_text', 'N/A')
-#                 location = car_data.get('bottom_description_text', 'N/A')
-#                 image_url = car_data.get('image_url')
-#
-#                 yield {
-#                     'brand': brand,
-#                     'title': title,
-#                     'price': price,
-#                     'mileage': mileage,
-#                     'location': location,
-#                     'image_url': image_url,
-#                 }
-#
-#         if data.get('pagination', {}).get('has_next_page'):
-#             next_page = page + 1
-#             yield self.make_request_for_brand(next_page, brand_index)
-#         else:
-#             next_brand_index = brand_index + 1
-#             if next_brand_index < len(self.brands):
-#                 yield self.make_request_for_brand(1, next_brand_index)
-
-
-
 class DivarCarSpider(scrapy.Spider):
     name = "divar_auto"
     allowed_domains = ["api.divar.ir"]
+    start_urls = ['https://api.divar.ir/v8/postlist/w/search']
+
+
+    def __init__(self, *args, **kwargs):
+        super(DivarCarSpider, self).__init__(*args, **kwargs)
+        self.brands = ["Audi","Arisan","Ario","Alfa Romeo","Amico","Opel","SWM","SKYWELL","Smart","Škoda","Oldsmobile",
+                       "MG","MVM","Iran Khodro","Isuzu","XTRIM","inroads","Iveco","BAIC","Brilliance","Besturn","Bestune",
+                       "Mercedes-Benz","Borgward","BAC","BMW","BISU","BYD","Buick","PARS KHODRO","Pazhan","Pride","Proton",
+                       "Peugeot","Porsche","Pontiac","Paykan","Tara","Toyota","Tiba","Tigard","Jetour","JAC","Jaguar",
+                       "Joylong","JMC","GAC Gonow","Jeep","Geely","Changan","Chery","Datsun","Domy","Dongfeng","Dayun",
+                       "Daihatsu","Delica","Dena","Dodge","Daewoo","DS","Dignity","Deer","Runna","Rayen","Renault","Rollsroyce",
+                       "Rich","Respect","Rigan","Zamyad","ZX_AUTO","Zotye","SsangYong","Saipa","Saina","Seat","Samand","Soueast",
+                       "Subaru","Suzuki","Citroen","Sinad","Sinogold","Shahin","Chevrolet","Farda","Foton","Ford","Volkswagen",
+                       "Fownix","Fiat","Fidelity","Capra","Chrysler","Quick","KG Mobility","Kia","KMC","Great-Wall","Gac",
+                       "Qingling","Lada","Lamari","Lamborghini","Lexus","Land Rover","Landmark","Lotus","LUCANO","Luxgen",
+                       "Lifan","Maserati","Mazda","Maxmotor","Maxus","Mitsubishi","MINI","NETA","Nissan","Volvo","IranKhodro Van",
+                       "Faw","Narvan","Venucia","VGV","Hafei Lobo","Hummer","Haval","Haima","Hanteng","Honda","Hongqi","Hillman",
+                       "Hyosow","Hyundai","Uaz","other",
+                       ]
+
+
+    def start_requests(self):
+        yield self.make_request_for_brand(1, 0)
+
+
+    def make_request_for_brand(self, page, brand_index):
+        brand = self.brands[brand_index]
+        payload = {
+            "city_ids": ["6"],
+            "search_data": {
+                "form_data": {
+                    "data": {
+                        "brand_model": {
+                            "repeated_string": {
+                                "value": [brand]
+                            }
+                        },
+                        "category": {
+                            "str": {"value": "light"}
+                        }
+                    }
+                }
+            },
+            "sort": {"str": {"value": "sort_date"}},
+            "page": page
+        }
+
+        return scrapy.Request(
+            url='https://api.divar.ir/v8/postlist/w/search',
+            method="POST",
+            body=json.dumps(payload),
+            headers={'Content-Type': 'application/json'},
+            callback=self.parse,
+            meta={'brand': brand, 'page': page, 'brand_index': brand_index}
+        )
+
+
+    def parse(self, response):
+        brand = response.meta['brand']
+        page = response.meta['page']
+        brand_index = response.meta['brand_index']
+
+        data = response.json()
+
+        for item in data.get('list_widgets', []):
+            if item.get('widget_type') == 'POST_ROW':
+                car_data = item['data']
+                title = car_data.get('title')
+                price = car_data.get('middle_description_text', 'N/A')
+                mileage = car_data.get('top_description_text', 'N/A')
+                location = car_data.get('bottom_description_text', 'N/A')
+                image_url = car_data.get('image_url')
+
+                yield {
+                    'brand': brand,
+                    'title': title,
+                    'price': price,
+                    'mileage': mileage,
+                    'location': location,
+                    'image_url': image_url,
+                }
+
+        if data.get('pagination', {}).get('has_next_page'):
+            next_page = page + 1
+            yield self.make_request_for_brand(next_page, brand_index)
+        else:
+            next_brand_index = brand_index + 1
+            if next_brand_index < len(self.brands):
+                yield self.make_request_for_brand(1, next_brand_index)
+
+
+
+
+class DivarSpider(scrapy.Spider):
+    name = "divar"
+    allowed_domains = ["api.divar.ir"]
+
 
     def start_requests(self):
         url = 'https://api.divar.ir/v8/postlist/w/filters'
@@ -143,40 +144,24 @@ class DivarCarSpider(scrapy.Spider):
             callback=self.parse_brand_names
         )
 
+
     def parse_brand_names(self, response):
-        if response.status != 200:
-            self.logger.error(f"Failed to fetch brand names, status: {response.status}")
-            return
+        data = response.json()
+        widget_list = data.get('widget_list', [])
+        for widget in widget_list:
+            if widget.get('uid') == 'filter_brand_model_expandable':
+                brand_widget = widget.get('data', {}).get('widget_list', [])
+                for brand_data in brand_widget:
+                    if brand_data.get('uid') == 'filter_brand_model':
+                        brand_options = brand_data.get('data', {}).get('options', {}).get('children', [])
+                        brand_names = [brand.get('data', {}).get('value') for brand in brand_options if
+                                       brand.get('data', {}).get('value')]
+                        if brand_names:
+                            for brand in brand_names:
+                                yield self.make_request_for_brand(1, brand)
+                        else:
+                            self.logger.error("No brands found")
 
-        self.logger.info(f"Response Body: {response.text}")
-
-        try:
-            data = json.loads(response.body.decode('utf-8'))
-            widget_list = data.get('widget_list', [])
-
-            if not widget_list:
-                self.logger.warning("No widget list found in the response.")
-
-            for widget in widget_list:
-                if widget.get('uid') == 'filter_brand_model_expandable':
-                    brand_widget = widget.get('data', {}).get('widget_list', [])
-
-                    for brand_data in brand_widget:
-                        if brand_data.get('uid') == 'filter_brand_model':
-                            brand_options = brand_data.get('data', {}).get('options', {}).get('children', [])
-                            brand_names = [brand.get('data', {}).get('value') for brand in brand_options if brand.get('data', {}).get('value')]
-
-                            self.logger.info(f"Fetched brands: {brand_names}")
-                            if brand_names:
-                                for brand in brand_names:
-                                    yield self.make_request_for_brand(1, brand)
-                            else:
-                                self.logger.warning("No brands found in the response.")
-
-        except json.JSONDecodeError:
-            self.logger.error("Failed to decode JSON response.")
-        except Exception as e:
-            self.logger.error(f"Error parsing brand names: {e}")
 
     def make_request_for_brand(self, page, brand):
         payload = {
@@ -212,37 +197,28 @@ class DivarCarSpider(scrapy.Spider):
         brand = response.meta['brand']
         page = response.meta['page']
 
-        try:
-            data = json.loads(response.body.decode('utf-8'))
+        data = response.json()
+        for item in data.get('list_widgets', []):
+            if item.get('widget_type') == 'POST_ROW':
+                car_data = item['data']
+                title = car_data.get('title')
+                price = car_data.get('middle_description_text', 'N/A')
+                mileage = car_data.get('top_description_text', 'N/A')
+                location = car_data.get('bottom_description_text', 'N/A')
+                image_url = car_data.get('image_url')
 
-            for item in data.get('list_widgets', []):
-                if item.get('widget_type') == 'POST_ROW':
-                    car_data = item['data']
-                    title = car_data.get('title')
-                    price = car_data.get('middle_description_text', 'N/A')
-                    mileage = car_data.get('top_description_text', 'N/A')
-                    location = car_data.get('bottom_description_text', 'N/A')
-                    image_url = car_data.get('image_url')
+                yield {
+                    'brand': brand,
+                    'title': title,
+                    'price': price,
+                    'mileage': mileage,
+                    'location': location,
+                    'image_url': image_url,
+                }
 
-                    yield {
-                        'brand': brand,
-                        'title': title,
-                        'price': price,
-                        'mileage': mileage,
-                        'location': location,
-                        'image_url': image_url,
-                    }
-
-            if data.get('pagination', {}).get('has_next_page'):
-                next_page = page + 1
-                yield self.make_request_for_brand(next_page, brand)
-
-        except json.JSONDecodeError:
-            self.logger.error("Failed to decode JSON response.")
-        except Exception as e:
-            self.logger.error(f"Error parsing response for brand {brand} on page {page}: {e}")
-
-
+        if data.get('pagination', {}).get('has_next_page'):
+            next_page = page + 1
+            yield self.make_request_for_brand(next_page, brand)
 
 
 
@@ -306,6 +282,7 @@ class CarSpider(scrapy.Spider):
 
 
 
+
 class BamaCarSpider(scrapy.Spider):
     name = "bama_cars"
     allowed_domains = ["bama.ir"]
@@ -327,11 +304,13 @@ class BamaCarSpider(scrapy.Spider):
         for ad in ads:
             yield {
                 'brand': response.meta['brand'],
-                'title': ad['detail']['title'],
+                'title': ad.get['detail'].get['title'],
                 'price': ad['price'].get('price', 'N/A'),
                 'year': ad['detail'].get('year', 'N/A'),
                 'mileage': ad['detail'].get('mileage', 'N/A'),
                 'location': ad['detail'].get('location', 'N/A'),
+                'image': ad['detail'].get('image', 'N/A'),
+                'color': ad['detail'].get('color', 'N/A'),
             }
 
         total_pages = data['metadata']['total_pages']
