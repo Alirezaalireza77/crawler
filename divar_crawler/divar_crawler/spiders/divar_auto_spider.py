@@ -7,6 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from scrapy.linkextractors import LinkExtractor
+from scrapy.spiders import CrawlSpider, Rule
 
 
 class DivarCarSpider(scrapy.Spider):
@@ -108,7 +110,7 @@ class DivarCarSpider(scrapy.Spider):
 class DivarSpider(scrapy.Spider):
     name = "divar"
     allowed_domains = ["api.divar.ir"]
-
+    brand_queue = []
 
     def start_requests(self):
         url = 'https://api.divar.ir/v8/postlist/w/filters'
@@ -144,27 +146,32 @@ class DivarSpider(scrapy.Spider):
             callback=self.parse_brand_names
         )
 
-
     def parse_brand_names(self, response):
         data = response.json()
-        page = data.get('page', [])
+        page = data.get('page', {})
         widget_list = page.get('widget_list', [])
+
         for widget in widget_list:
-            if widget.get('widget_type')=='EXPANDABLE_FORM_ROW' and widget.get('uid') == 'filter_brand_model_expandable':
+            if widget.get('widget_type') == 'EXPANDABLE_FORM_ROW' and widget.get(
+                    'uid') == 'filter_brand_model_expandable':
                 brand_widget = widget.get('data', {}).get('widget_list', [])
                 for brand_data in brand_widget:
-                    if brand_data.get('widget_type') == 'I_MULTI_SELECT_HIERARCHY_ROW' and brand_data.get('uid') == 'filter_brand_model':
-                        option_brand = brand_data.get('data', {}).get('options', [])
+                    if brand_data.get('widget_type') == 'I_MULTI_SELECT_HIERARCHY_ROW' and brand_data.get(
+                            'uid') == 'filter_brand_model':
+                        option_brand = brand_data.get('data', {}).get('options', {})
                         children_brand = option_brand.get('children', [])
                         for child in children_brand:
                             brand_data = child.get('data', {})
-                            brand_names = brand_data.get('value', '')
-                        if brand_names:
-                            for brand in brand_names:
-                                yield self.make_request_for_brand(1, brand)
-                        else:
-                            self.logger.error("No brands found")
+                            brand_name = brand_data.get('value', '')
+                            if brand_name:
+                                self.brand_queue.append(brand_name)
 
+
+        if self.brand_queue:
+            first_brand = self.brand_queue.pop(0)
+            yield self.make_request_for_brand(1, first_brand)
+        else:
+            self.logger.error("No brands found")
 
     def make_request_for_brand(self, page, brand):
         payload = {
@@ -222,6 +229,12 @@ class DivarSpider(scrapy.Spider):
         if data.get('pagination', {}).get('has_next_page'):
             next_page = page + 1
             yield self.make_request_for_brand(next_page, brand)
+        else:
+            if self.brand_queue:
+                next_brand = self.brand_queue.pop(0)
+                yield self.make_request_for_brand(1, next_brand)
+            else:
+                self.logger.info("All brands processed")
 
 
 
@@ -329,3 +342,48 @@ class BamaCarSpider(scrapy.Spider):
                 next_brand = self.brands[next_brand_index]
                 next_brand_url = self.api_url.format(brand=next_brand, page=1)
                 yield scrapy.Request(next_brand_url, callback=self.parse, meta={'brand': next_brand, 'page': 1})
+
+
+
+# my first crawling
+class PricingCarSpider(scrapy.Spider):
+    name = 'car_spider'
+    allowed_domains = ['www.khodro45.com']
+    start_urls = ['https://www.khodro45.com/pricing']
+
+
+    def parse(self, response):
+        for box_pricing in response.css('div.pricing-box'):
+            for row in box_pricing.css('div.d-block'):
+                model = row.css('div.item__right::text').get()
+                price = row.css('span.item__price::text').get()
+
+                if model and price:
+                    yield {
+                        'model': model.strip(),
+                        'price': price.strip(),
+                    }
+        next_page = response.css('a.next::attr(href)').get()
+        if next_page:
+            yield response.follow(next_page, callback=self.parse)
+
+#crawl with using link extractor
+class PricingSpider(scrapy.Spider):
+    name = 'pricing_spider'
+    allowed_domains = ['www.khodro45.com']
+    start_urls = ['https://www.khodro45.com/pricing']
+
+    rules = (
+        Rule(LinkExtractor(restrict_xpaths='//div[@class="pricing-box"]//a'), callback='parse_pricing', follow=False),
+        Rule(LinkExtractor(restrict_xpaths='//a[@class="next"]'), follow=True),
+    )
+
+
+    def parse_pricing(self, response):
+        model = response.xpath('//title/text()').get()
+        price = response.xpath(
+             '//div[@class="d-inline-flex align-items-center justify-content-end flex-wrap"]/div[@class="text-16 font-weight-bold"]/text()').get()
+        yield {
+            'model': model,
+            'price': price
+        }
