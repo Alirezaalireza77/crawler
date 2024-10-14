@@ -147,13 +147,18 @@ class DivarSpider(scrapy.Spider):
 
     def parse_brand_names(self, response):
         data = response.json()
-        widget_list = data.get('widget_list', [])
+        page = data.get('page', [])
+        widget_list = page.get('widget_list', [])
         for widget in widget_list:
             if widget.get('widget_type')=='EXPANDABLE_FORM_ROW' and widget.get('uid') == 'filter_brand_model_expandable':
                 brand_widget = widget.get('data', {}).get('widget_list', [])
                 for brand_data in brand_widget:
                     if brand_data.get('widget_type') == 'I_MULTI_SELECT_HIERARCHY_ROW' and brand_data.get('uid') == 'filter_brand_model':
-                        brand_names = brand_data.get('data', {}).get('options', {}).get('data', []).get('values', [])
+                        option_brand = brand_data.get('data', {}).get('options', [])
+                        children_brand = option_brand.get('children', [])
+                        for child in children_brand:
+                            brand_data = child.get('data', {})
+                            brand_names = brand_data.get('value', '')
                         if brand_names:
                             for brand in brand_names:
                                 yield self.make_request_for_brand(1, brand)
