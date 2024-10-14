@@ -164,10 +164,6 @@ class CarSpider(scrapy.Spider):
 
 
 
-
-import scrapy
-import json
-
 class BamaCarSpider(scrapy.Spider):
     name = "bama_cars"
     allowed_domains = ["bama.ir"]
