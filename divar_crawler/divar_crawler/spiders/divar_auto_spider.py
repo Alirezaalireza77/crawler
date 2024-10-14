@@ -82,13 +82,16 @@ class DivarCarSpider(scrapy.Spider):
                 title = car_data.get('title')
                 price = car_data.get('middle_description_text', 'N/A')
                 mileage = car_data.get('top_description_text', 'N/A')
-
+                location = car_data.get('bottom_description_text', 'N/A')
+                image_url = car_data.get('image_url')
 
                 yield {
                     'brand': brand,
                     'title': title,
                     'price': price,
                     'mileage': mileage,
+                    'location': location,
+                    'image_url': image_url,
                 }
 
         if data.get('pagination', {}).get('has_next_page'):
@@ -100,60 +103,109 @@ class DivarCarSpider(scrapy.Spider):
                 yield self.make_request_for_brand(1, next_brand_index)
 
 
+# //////// using selenium
 
-class CarSpider(scrapy.Spider):
-    name = 'bama'
-    allowed_domains = ['bama.ir']
-    start_urls = [
-        'https://www.bama.ir/car',
-    ]
+# class CarSpider(scrapy.Spider):
+#     name = 'bama'
+#     allowed_domains = ['bama.ir']
+#     start_urls = [
+#         'https://www.bama.ir/car',
+#     ]
+#
+#     def __init__(self, *args, **kwargs):
+#         super(CarSpider, self).__init__(*args, **kwargs)
+#         options = Options()
+#         options.headless = True
+#         options.add_argument('--no-sandbox')
+#         options.add_argument('--disable-dev-shm-usage')
+#         options.add_argument('--disable-gpu')
+#         options.add_argument('--remote-debugging-port=9222')
+#         options.add_argument('--disable-blink-features=AutomationControlled')
+#         options.add_argument('--disable-software-rasterizer')
+#
+#         profile_dir = tempfile.mkdtemp()
+#         options.add_argument(f"user-data-dir={profile_dir}")
+#
+#         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+#
+#     def parse(self, response):
+#         self.driver.get(response.url)
+#
+#         last_height = self.driver.execute_script("return document.body.scrollHeight")
+#         while True:
+#             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+#             time.sleep(3)
+#             new_height = self.driver.execute_script("return document.body.scrollHeight")
+#             if new_height == last_height:
+#                 break
+#             last_height = new_height
+#
+#         selector = Selector(text=self.driver.page_source)
+#         car_links = selector.xpath('//div[@class="bama-adlist-container"]//a/@href').extract()
+#
+#         for link in car_links:
+#             time.sleep(2)
+#             yield response.follow(link, callback=self.parse_car)
+#
+#         next_page = selector.xpath('//a[@class="next"]/@href').get()
+#         if next_page:
+#             next_page_url = response.urljoin(next_page)
+#             yield scrapy.Request(url=next_page_url, callback=self.parse)
+#
+#     def parse_car(self, response):
+#         model = response.xpath('normalize-space(//h1[@class="bama-ad-detail-title__title"])').get()
+#         price = response.xpath(
+#             'normalize-space(//div[@class="bama-ad-detail-price__section"]//span[@class="bama-ad-detail-price__price-text"])').get()
+#
+#         yield {
+#             'model': model,
+#             'price': price if price else None
+#         }
 
-    def __init__(self, *args, **kwargs):
-        super(CarSpider, self).__init__(*args, **kwargs)
-        options = Options()
-        options.headless = True
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--remote-debugging-port=9222')
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_argument('--disable-software-rasterizer')
 
-        profile_dir = tempfile.mkdtemp()
-        options.add_argument(f"user-data-dir={profile_dir}")
 
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+
+import scrapy
+import json
+
+class BamaCarSpider(scrapy.Spider):
+    name = "bama_cars"
+    allowed_domains = ["bama.ir"]
+    api_url = "https://bama.ir/cad/api/search?vehicle={brand}&pageIndex={page}"
+
+
+    brands = ['bmw', 'benz', 'peugeot', 'kia']
+
+    def start_requests(self):
+        for brand in self.brands:
+            url = self.api_url.format(brand=brand, page=1)
+            yield scrapy.Request(url, callback=self.parse, meta={'brand': brand, 'page': 1})
+
 
     def parse(self, response):
-        self.driver.get(response.url)
+        data = json.loads(response.body)
+        ads = data.get('data', {}).get('ads', [])
 
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3)
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
+        for ad in ads:
+            yield {
+                'brand': response.meta['brand'],
+                'title': ad['detail']['title'],
+                'price': ad['price'].get('price', 'N/A'),
+                'year': ad['detail'].get('year', 'N/A'),
+                'mileage': ad['detail'].get('mileage', 'N/A'),
+                'location': ad['detail'].get('location', 'N/A'),
+            }
 
-        selector = Selector(text=self.driver.page_source)
-        car_links = selector.xpath('//div[@class="bama-adlist-container"]//a/@href').extract()
-
-        for link in car_links:
-            time.sleep(2)
-            yield response.follow(link, callback=self.parse_car)
-
-        next_page = selector.xpath('//a[@class="next"]/@href').get()
-        if next_page:
-            next_page_url = response.urljoin(next_page)
-            yield scrapy.Request(url=next_page_url, callback=self.parse)
-
-    def parse_car(self, response):
-        model = response.xpath('normalize-space(//h1[@class="bama-ad-detail-title__title"])').get()
-        price = response.xpath(
-            'normalize-space(//div[@class="bama-ad-detail-price__section"]//span[@class="bama-ad-detail-price__price-text"])').get()
-
-        yield {
-            'model': model,
-            'price': price if price else None
-        }
+        total_pages = data['metadata']['total_pages']
+        current_page = response.meta['page']
+        if current_page < total_pages:
+            next_page = current_page + 1
+            next_page_url = self.api_url.format(brand=response.meta['brand'], page=next_page)
+            yield scrapy.Request(next_page_url, callback=self.parse, meta={'brand': response.meta['brand'], 'page': next_page})
+        else:
+            current_brand = response.meta['brand']
+            next_brand_index = self.brands.index(current_brand) + 1
+            if next_brand_index < len(self.brands):
+                next_brand = self.brands[next_brand_index]
+                next_brand_url = self.api_url.format(brand=next_brand, page=1)
+                yield scrapy.Request(next_brand_url, callback=self.parse, meta={'brand': next_brand, 'page': 1})
