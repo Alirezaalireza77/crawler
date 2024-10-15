@@ -166,16 +166,23 @@ class DivarSpider(scrapy.Spider):
                             if brand_name:
                                 self.brand_queue.append(brand_name)
 
-
         if self.brand_queue:
             first_brand = self.brand_queue.pop(0)
-            yield self.make_request_for_brand(1, first_brand)
+            yield self.make_request_for_brand(1, 1, first_brand, None, None)  # Start with page 1, layer_page 1, no last_post_date
         else:
             self.logger.error("No brands found")
 
-    def make_request_for_brand(self, page, brand):
+    def make_request_for_brand(self, page, layer_page, brand, last_post_date, search_uid):
+        # Include search_uid, layer_page, and last_post_date in the payload
         payload = {
             "city_ids": ["6"],
+            "pagination_data": {
+                "@type": "type.googleapis.com/post_list.PaginationData",
+                "last_post_date": last_post_date,  # Set this to None for the first page
+                "layer_page": layer_page,
+                "page": page
+            },
+            "search_uid": search_uid,  # Include search_uid to track the search session
             "search_data": {
                 "form_data": {
                     "data": {
@@ -190,8 +197,7 @@ class DivarSpider(scrapy.Spider):
                     }
                 }
             },
-            "sort": {"str": {"value": "sort_date"}},
-            "page": page
+            "sort": {"str": {"value": "sort_date"}}
         }
 
         return scrapy.Request(
@@ -200,12 +206,15 @@ class DivarSpider(scrapy.Spider):
             body=json.dumps(payload),
             headers={'Content-Type': 'application/json'},
             callback=self.parse,
-            meta={'brand': brand, 'page': page}
+            meta={'brand': brand, 'page': page, 'layer_page': layer_page, 'last_post_date': last_post_date, 'search_uid': search_uid}
         )
 
     def parse(self, response):
         brand = response.meta['brand']
         page = response.meta['page']
+        layer_page = response.meta['layer_page']
+        last_post_date = response.meta['last_post_date']
+        search_uid = response.meta['search_uid']
 
         data = response.json()
         for item in data.get('list_widgets', []):
@@ -226,17 +235,24 @@ class DivarSpider(scrapy.Spider):
                     'image_url': image_url,
                 }
 
-        if data.get('pagination', {}).get('has_next_page'):
+        pagination_data = data.get('pagination', {})
+        new_last_post_date = pagination_data.get('data', {}).get('last_post_date')
+        has_next_page = pagination_data.get('has_next_page')
+        page = pagination_data.get('data', {}).get('page')
+        new_search_uid = data.get('search_uid', search_uid)
+
+
+        if has_next_page:
             next_page = page + 1
-            yield self.make_request_for_brand(next_page, brand)
+            next_layer_page = layer_page + 1
+            yield self.make_request_for_brand(next_page, next_layer_page, brand, new_last_post_date, new_search_uid)
         else:
             if self.brand_queue:
                 next_brand = self.brand_queue.pop(0)
-                yield self.make_request_for_brand(1, next_brand)
+                yield self.make_request_for_brand(1, 1, next_brand, None,
+                                                  None)  # Reset page and layer_page for the next brand
             else:
                 self.logger.info("All brands processed")
-
-
 
 
 class CarSpider(scrapy.Spider):
@@ -367,6 +383,8 @@ class PricingCarSpider(scrapy.Spider):
         if next_page:
             yield response.follow(next_page, callback=self.parse)
 
+
+
 #crawl with using link extractor
 class PricingSpider(scrapy.Spider):
     name = 'pricing_spider'
@@ -387,3 +405,5 @@ class PricingSpider(scrapy.Spider):
             'model': model,
             'price': price
         }
+
+
