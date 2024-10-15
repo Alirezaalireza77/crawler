@@ -8,7 +8,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule
+from scrapy.spiders import Rule
 
 
 class DivarCarSpider(scrapy.Spider):
@@ -16,33 +16,44 @@ class DivarCarSpider(scrapy.Spider):
     allowed_domains = ["api.divar.ir"]
     start_urls = ['https://api.divar.ir/v8/postlist/w/search']
 
-
     def __init__(self, *args, **kwargs):
         super(DivarCarSpider, self).__init__(*args, **kwargs)
-        self.brands = ["Audi","Arisan","Ario","Alfa Romeo","Amico","Opel","SWM","SKYWELL","Smart","Škoda","Oldsmobile",
-                       "MG","MVM","Iran Khodro","Isuzu","XTRIM","inroads","Iveco","BAIC","Brilliance","Besturn","Bestune",
-                       "Mercedes-Benz","Borgward","BAC","BMW","BISU","BYD","Buick","PARS KHODRO","Pazhan","Pride","Proton",
-                       "Peugeot","Porsche","Pontiac","Paykan","Tara","Toyota","Tiba","Tigard","Jetour","JAC","Jaguar",
-                       "Joylong","JMC","GAC Gonow","Jeep","Geely","Changan","Chery","Datsun","Domy","Dongfeng","Dayun",
-                       "Daihatsu","Delica","Dena","Dodge","Daewoo","DS","Dignity","Deer","Runna","Rayen","Renault","Rollsroyce",
-                       "Rich","Respect","Rigan","Zamyad","ZX_AUTO","Zotye","SsangYong","Saipa","Saina","Seat","Samand","Soueast",
-                       "Subaru","Suzuki","Citroen","Sinad","Sinogold","Shahin","Chevrolet","Farda","Foton","Ford","Volkswagen",
-                       "Fownix","Fiat","Fidelity","Capra","Chrysler","Quick","KG Mobility","Kia","KMC","Great-Wall","Gac",
-                       "Qingling","Lada","Lamari","Lamborghini","Lexus","Land Rover","Landmark","Lotus","LUCANO","Luxgen",
-                       "Lifan","Maserati","Mazda","Maxmotor","Maxus","Mitsubishi","MINI","NETA","Nissan","Volvo","IranKhodro Van",
-                       "Faw","Narvan","Venucia","VGV","Hafei Lobo","Hummer","Haval","Haima","Hanteng","Honda","Hongqi","Hillman",
-                       "Hyosow","Hyundai","Uaz","other",
-                       ]
-
+        self.brands = [
+            "Audi", "Arisan", "Ario", "Alfa Romeo", "Amico", "Opel", "SWM", "SKYWELL", "Smart", "Škoda", "Oldsmobile",
+            "MG", "MVM", "Iran Khodro", "Isuzu", "XTRIM", "inroads", "Iveco", "BAIC", "Brilliance", "Besturn",
+            "Bestune", "Mercedes-Benz", "Borgward", "BAC", "BMW", "BISU", "BYD", "Buick", "PARS KHODRO", "Pazhan",
+            "Pride", "Proton", "Peugeot", "Porsche", "Pontiac", "Paykan", "Tara", "Toyota", "Tiba", "Tigard", "Jetour",
+            "JAC", "Jaguar", "Joylong", "JMC", "GAC Gonow", "Jeep", "Geely", "Changan", "Chery", "Datsun", "Domy",
+            "Dongfeng", "Dayun", "Daihatsu", "Delica", "Dena", "Dodge", "Daewoo", "DS", "Dignity", "Deer", "Runna",
+            "Rayen", "Renault", "Rollsroyce", "Rich", "Respect", "Rigan", "Zamyad", "ZX_AUTO", "Zotye", "SsangYong",
+            "Saipa", "Saina", "Seat", "Samand", "Soueast", "Subaru", "Suzuki", "Citroen", "Sinad", "Sinogold", "Shahin",
+            "Chevrolet", "Farda", "Foton", "Ford", "Volkswagen", "Fownix", "Fiat", "Fidelity", "Capra", "Chrysler",
+            "Quick", "KG Mobility", "Kia", "KMC", "Great-Wall", "Gac", "Qingling", "Lada", "Lamari", "Lamborghini",
+            "Lexus", "Land Rover", "Landmark", "Lotus", "LUCANO", "Luxgen", "Lifan", "Maserati", "Mazda", "Maxmotor",
+            "Maxus", "Mitsubishi", "MINI", "NETA", "Nissan", "Volvo", "IranKhodro Van", "Faw", "Narvan", "Venucia",
+            "VGV", "Hafei Lobo", "Hummer", "Haval", "Haima", "Hanteng", "Honda", "Hongqi", "Hillman", "Hyosow",
+            "Hyundai", "Uaz", "other"
+        ]
+        self.current_brand_index = 0
 
     def start_requests(self):
         yield self.make_request_for_brand(1, 0)
 
+    def make_request_for_brand(self, page, layer_page, last_post_date=None, search_uid=None):
+        if self.current_brand_index >= len(self.brands):
+            self.logger.info("All brands processed.")
+            return
 
-    def make_request_for_brand(self, page, brand_index):
-        brand = self.brands[brand_index]
+        brand = self.brands[self.current_brand_index]
         payload = {
             "city_ids": ["6"],
+            "pagination_data": {
+                "@type": "type.googleapis.com/post_list.PaginationData",
+                "last_post_date": last_post_date,
+                "layer_page": layer_page,
+                "page": page
+            },
+            "search_uid": search_uid,
             "search_data": {
                 "form_data": {
                     "data": {
@@ -57,8 +68,7 @@ class DivarCarSpider(scrapy.Spider):
                     }
                 }
             },
-            "sort": {"str": {"value": "sort_date"}},
-            "page": page
+            "sort": {"str": {"value": "sort_date"}}
         }
 
         return scrapy.Request(
@@ -67,42 +77,52 @@ class DivarCarSpider(scrapy.Spider):
             body=json.dumps(payload),
             headers={'Content-Type': 'application/json'},
             callback=self.parse,
-            meta={'brand': brand, 'page': page, 'brand_index': brand_index}
+            meta={
+                'brand': brand,
+                'page': page,
+                'layer_page': layer_page,
+                'last_post_date': last_post_date,
+                'search_uid': search_uid
+            }
         )
-
 
     def parse(self, response):
         brand = response.meta['brand']
         page = response.meta['page']
-        brand_index = response.meta['brand_index']
+        layer_page = response.meta['layer_page']
+        last_post_date = response.meta['last_post_date']
+        search_uid = response.meta['search_uid']
 
         data = response.json()
+
 
         for item in data.get('list_widgets', []):
             if item.get('widget_type') == 'POST_ROW':
                 car_data = item['data']
-                title = car_data.get('title')
-                price = car_data.get('middle_description_text', 'N/A')
-                mileage = car_data.get('top_description_text', 'N/A')
-                location = car_data.get('bottom_description_text', 'N/A')
-                image_url = car_data.get('image_url')
-
                 yield {
                     'brand': brand,
-                    'title': title,
-                    'price': price,
-                    'mileage': mileage,
-                    'location': location,
-                    'image_url': image_url,
+                    'title': car_data.get('title'),
+                    'price': car_data.get('middle_description_text', 'N/A'),
+                    'mileage': car_data.get('top_description_text', 'N/A'),
+                    'location': car_data.get('bottom_description_text', 'N/A'),
+                    'image_url': car_data.get('image_url'),
                 }
 
-        if data.get('pagination', {}).get('has_next_page'):
+
+        pagination_data = data.get('pagination', {}).get('data', {})
+        new_last_post_date = pagination_data.get('last_post_date')
+        has_next_page = data.get('pagination', {}).get('has_next_page')
+        new_search_uid = data.get('search_uid', search_uid)
+
+        if has_next_page:
             next_page = page + 1
-            yield self.make_request_for_brand(next_page, brand_index)
+            yield self.make_request_for_brand(next_page, layer_page, new_last_post_date, new_search_uid)
         else:
-            next_brand_index = brand_index + 1
-            if next_brand_index < len(self.brands):
-                yield self.make_request_for_brand(1, next_brand_index)
+
+            self.current_brand_index += 1
+            yield self.make_request_for_brand(1, 0)
+
+
 
 
 
