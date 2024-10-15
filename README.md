@@ -3,42 +3,42 @@ Overview
 This project is a web crawler built using Scrapy and Selenium. The crawler is designed to extract data from websites that require dynamic content rendering (JavaScript-heavy pages), combining the efficiency of Scrapy for static content scraping and the flexibility of Selenium for JavaScript execution.
 Table of Contents
 
-    Prerequisites
-    Installation
-    Project Structure
-    Configuration
-    Usage
-    Custom Settings
-    Contributing
-    License
+    . Prerequisites
+    . Installation
+    . Project Structure
+    . Configuration
+    . Usage
+    . Custom Settings
+    . Contributing
+    . License
 
 Prerequisites
 
 Ensure you have the following installed:
 
-    Python 3.8+
-    Pip (Python package manager)
-    Google Chrome or Firefox browser (depending on your Selenium driver choice)
-    ChromeDriver or GeckoDriver for Selenium, depending on your browser
-        ChromeDriver #for using Chrome
-        GeckoDriver  #for using Firefox
+        Python 3.8+
+        Pip (Python package manager)
+        Google Chrome or Firefox browser (depending on your Selenium driver choice)
+        ChromeDriver or GeckoDriver for Selenium, depending on your browser
+            ChromeDriver #for using Chrome
+            GeckoDriver  #for using Firefox
 
 Installation
 
-    Clone the repository:
+Clone the repository:
 
     bash
 
-git clone https://github.com/Alirezaalireza77/crawler.git
-cd divar_crawler
+        git clone https://github.com/Alirezaalireza77/crawler.git
+        cd divar_crawler
 
 Install dependencies:
 
 bash
 
-    pip install -r requirements.txt
+        pip install -r requirements.txt
 
-    Install the appropriate browser driver (e.g., ChromeDriver or GeckoDriver) and ensure it's in your system's PATH.
+        Install the appropriate browser driver (e.g., ChromeDriver or GeckoDriver) and ensure it's in your system's PATH.
 
 Project Structure
 
@@ -64,12 +64,12 @@ Scrapy Settings
 
 All Scrapy settings, including custom configurations for Selenium, can be found in crawler/settings.py. The key settings include:
 
-    BOT_NAME: Name of the bot.
-    SPIDER_MODULES: Path to your spider modules.
-    ROBOTSTXT_OBEY: Set to True or False to follow or ignore robots.txt.
-    SELENIUM_DRIVER_NAME: Set to 'chrome', 'firefox', or another browser that Selenium supports.
-    SELENIUM_DRIVER_EXECUTABLE_PATH: Path to your chromedriver or geckodriver.
-    SELENIUM_DRIVER_ARGUMENTS: Arguments passed to the Selenium WebDriver.
+        BOT_NAME: Name of the bot.
+        SPIDER_MODULES: Path to your spider modules.
+        ROBOTSTXT_OBEY: Set to True or False to follow or ignore robots.txt.
+        SELENIUM_DRIVER_NAME: Set to 'chrome', 'firefox', or another browser that Selenium supports.
+        SELENIUM_DRIVER_EXECUTABLE_PATH: Path to your chromedriver or geckodriver.
+        SELENIUM_DRIVER_ARGUMENTS: Arguments passed to the Selenium WebDriver.
 
 Example Selenium integration configuration in settings.py:
 
@@ -89,7 +89,7 @@ To run the spider, use the following command:
 
 bash
 
-scrapy crawl example_spider
+    scrapy crawl example_spider
 
 Running with Selenium
 
@@ -135,7 +135,7 @@ python
 LOG_LEVEL = 'INFO'  # Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_FILE = 'logs/crawler.log'
 
-Contributing
+
 
     Fork the repository.
     Create a feature branch: git checkout -b new-feature.
@@ -143,10 +143,11 @@ Contributing
     Push to the branch: git push origin new-feature.
     Open a pull request.
 
-License
+
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-Alireza
-github : Alirezaalireza77
 
 Enjoy crawling! If you encounter any issues, feel free to open an issue or contribute to the project.
+
+Alireza
+github : Alirezaalireza77
