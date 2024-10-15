@@ -12,11 +12,13 @@ from scrapy.spiders import Rule
 
 
 class DivarCarSpider(scrapy.Spider):
-    name = "divar_auto"
+    """THis spider is according to document and its purpose is that to crawl the website."""
+    name = "divar_auto"   # A name for you bot to call it in terminal to start the crawling.
     allowed_domains = ["api.divar.ir"]
-    start_urls = ['https://api.divar.ir/v8/postlist/w/search']
+    start_urls = ['https://api.divar.ir/v8/postlist/w/search']       #endpoint url of site
 
     def __init__(self, *args, **kwargs):
+        """Initial function to run class."""
         super(DivarCarSpider, self).__init__(*args, **kwargs)
         self.brands = [
             "Audi", "Arisan", "Ario", "Alfa Romeo", "Amico", "Opel", "SWM", "SKYWELL", "Smart", "Škoda", "Oldsmobile",
@@ -33,18 +35,21 @@ class DivarCarSpider(scrapy.Spider):
             "Maxus", "Mitsubishi", "MINI", "NETA", "Nissan", "Volvo", "IranKhodro Van", "Faw", "Narvan", "Venucia",
             "VGV", "Hafei Lobo", "Hummer", "Haval", "Haima", "Hanteng", "Honda", "Hongqi", "Hillman", "Hyosow",
             "Hyundai", "Uaz", "other"
-        ]
-        self.current_brand_index = 0
+        ]    # list for brands you want to crawl its hardcore and goal of that, is crawling special brands.
+
+        self.current_brand_index = 0    #initial brand for example in here is Audi
 
     def start_requests(self):
-        yield self.make_request_for_brand(1, 0)
+        yield self.make_request_for_brand(1, 0)  # send necessary data to function.
 
     def make_request_for_brand(self, page, layer_page, last_post_date=None, search_uid=None):
-        if self.current_brand_index >= len(self.brands):
+        """This function provide data to fill with body of request."""
+        if self.current_brand_index >= len(self.brands): #check there is index of brand to crawl.
             self.logger.info("All brands processed.")
             return
 
         brand = self.brands[self.current_brand_index]
+        #fill a request with this body to receive response.
         payload = {
             "city_ids": ["6"],
             "pagination_data": {
@@ -71,6 +76,7 @@ class DivarCarSpider(scrapy.Spider):
             "sort": {"str": {"value": "sort_date"}}
         }
 
+        # send request
         return scrapy.Request(
             url='https://api.divar.ir/v8/postlist/w/search',
             method="POST",
@@ -86,7 +92,9 @@ class DivarCarSpider(scrapy.Spider):
             }
         )
 
+
     def parse(self, response):
+        """The purpose of this function receive data from the response"""
         brand = response.meta['brand']
         page = response.meta['page']
         layer_page = response.meta['layer_page']
@@ -95,7 +103,7 @@ class DivarCarSpider(scrapy.Spider):
 
         data = response.json()
 
-
+        #move to data to receive what we want.
         for item in data.get('list_widgets', []):
             if item.get('widget_type') == 'POST_ROW':
                 car_data = item['data']
@@ -108,17 +116,18 @@ class DivarCarSpider(scrapy.Spider):
                     'image_url': car_data.get('image_url'),
                 }
 
-
+        #get pagination data
         pagination_data = data.get('pagination', {}).get('data', {})
         new_last_post_date = pagination_data.get('last_post_date')
         has_next_page = data.get('pagination', {}).get('has_next_page')
         new_search_uid = data.get('search_uid', search_uid)
 
+        #check there are next page or not
         if has_next_page:
             next_page = page + 1
             yield self.make_request_for_brand(next_page, layer_page, new_last_post_date, new_search_uid)
         else:
-
+            # move to next brand
             self.current_brand_index += 1
             yield self.make_request_for_brand(1, 0)
 
@@ -128,12 +137,16 @@ class DivarCarSpider(scrapy.Spider):
 
 
 class DivarSpider(scrapy.Spider):
-    name = "divar"
+    """This class has written to crawling data according to fetch the brand, automatic from endpoint of website.
+    Brands list are in another endpoint that provide brands from there because in site it be handled it another endpoint that give access
+    to list of brands."""
+    name = "divar"    #the name of your spider bot to call it when you want to crawl.
     allowed_domains = ["api.divar.ir"]
-    brand_queue = []
+    brand_queue = []     #brands after fetching add here.
 
     def start_requests(self):
-        url = 'https://api.divar.ir/v8/postlist/w/filters'
+        """The purpose of this function is that to provide necessary data to fill body of request to be valid to receive the data of brands."""
+        url = 'https://api.divar.ir/v8/postlist/w/filters'       #endpoint of brand list filter.
         payload = {
             "city_ids": ["6"],
             "data": {
@@ -158,6 +171,7 @@ class DivarSpider(scrapy.Spider):
         }
         headers = {'Content-Type': 'application/json'}
 
+        #send requests to get brands.
         yield scrapy.Request(
             url=url,
             method='POST',
@@ -167,10 +181,11 @@ class DivarSpider(scrapy.Spider):
         )
 
     def parse_brand_names(self, response):
+        """The goal of this function is to get data from the request has sent."""
         data = response.json()
         page = data.get('page', {})
         widget_list = page.get('widget_list', [])
-
+        #move to nested data structured of response to receive the data we need.
         for widget in widget_list:
             if widget.get('widget_type') == 'EXPANDABLE_FORM_ROW' and widget.get(
                     'uid') == 'filter_brand_model_expandable':
@@ -184,7 +199,7 @@ class DivarSpider(scrapy.Spider):
                             brand_data = child.get('data', {})
                             brand_name = brand_data.get('value', '')
                             if brand_name:
-                                self.brand_queue.append(brand_name)
+                                self.brand_queue.append(brand_name)   #add brand to above list.
 
         if self.brand_queue:
             first_brand = self.brand_queue.pop(0)
@@ -193,14 +208,14 @@ class DivarSpider(scrapy.Spider):
             self.logger.error("No brands found")
 
     def make_request_for_brand(self, page, layer_page, brand, last_post_date, search_uid):
-
+        """this function send a request for every brand and fill its valid body request."""
         payload = {
             "city_ids": ["6"],
             "pagination_data": {
                 "@type": "type.googleapis.com/post_list.PaginationData",
                 "last_post_date": last_post_date,
                 "layer_page": layer_page,
-                "page": page
+                "page": "page"
             },
             "search_uid": search_uid,
             "search_data": {
@@ -219,7 +234,7 @@ class DivarSpider(scrapy.Spider):
             },
             "sort": {"str": {"value": "sort_date"}}
         }
-
+        #send request.
         return scrapy.Request(
             url='https://api.divar.ir/v8/postlist/w/search',
             method="POST",
@@ -230,6 +245,7 @@ class DivarSpider(scrapy.Spider):
         )
 
     def parse(self, response):
+        """The goal of this function is to get data from the request has sent."""
         brand = response.meta['brand']
         page = response.meta['page']
         layer_page = response.meta['layer_page']
@@ -237,6 +253,7 @@ class DivarSpider(scrapy.Spider):
         search_uid = response.meta['search_uid']
 
         data = response.json()
+        #receive data we want to show in json file.
         for item in data.get('list_widgets', []):
             if item.get('widget_type') == 'POST_ROW':
                 car_data = item['data']
@@ -254,19 +271,20 @@ class DivarSpider(scrapy.Spider):
                     'location': location,
                     'image_url': image_url,
                 }
-
+        #get the pagination data
         pagination_data = data.get('pagination', {})
         new_last_post_date = pagination_data.get('data', {}).get('last_post_date')
         has_next_page = pagination_data.get('has_next_page')
         page = pagination_data.get('data', {}).get('page')
         new_search_uid = data.get('search_uid', search_uid)
 
-
+        #chech for there are another page or not.
         if has_next_page:
             next_page = page + 1
             next_layer_page = layer_page + 1
             yield self.make_request_for_brand(next_page, next_layer_page, brand, new_last_post_date, new_search_uid)
         else:
+            #move to next brand
             if self.brand_queue:
                 next_brand = self.brand_queue.pop(0)
                 yield self.make_request_for_brand(1, 1, next_brand, None,
@@ -276,32 +294,49 @@ class DivarSpider(scrapy.Spider):
 
 
 class CarSpider(scrapy.Spider):
-    name = 'bama'
+    """The Purpose of this class is crawl the website with using selenium. Selenium in fact open a browser like a human and treat like him/her.
+    for example in this class it open a page in broser search the url and click on link like me when I want to do it. It uses almost for website
+     which handled by javascript. """
+
+    name = 'bama'   #name of bot you want to run crawler.
     allowed_domains = ['bama.ir']
     start_urls = [
         'https://www.bama.ir/car',
     ]
 
     def __init__(self, *args, **kwargs):
+        """Initial function to treat with options we want."""
         super(CarSpider, self).__init__(*args, **kwargs)
         options = Options()
         options.headless = True
+        # this line try to disable no-sandbox security feature. this allows to access to resource.
         options.add_argument('--no-sandbox')
+        # Chrome uses dev/shm(shared memory) for temporary storage. Disabling this tells Chrome to use regular disk storage instead.
         options.add_argument('--disable-dev-shm-usage')
+        # disable gpu
         options.add_argument('--disable-gpu')
+        # enable Chrome remote feature.
         options.add_argument('--remote-debugging-port=9222')
+        # Disables the AutomationControlled feature in Chrome's Blink rendering engine,
         options.add_argument('--disable-blink-features=AutomationControlled')
+        #Disables the software rasterizer, which is a fallback mechanism for rendering content in the absence of a GPU
         options.add_argument('--disable-software-rasterizer')
 
+        #create a temp file
         profile_dir = tempfile.mkdtemp()
         options.add_argument(f"user-data-dir={profile_dir}")
 
+        #provide a browse page
         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
     def parse(self, response):
-        self.driver.get(response.url)
+        """The purpose of this function is to parse and separate data."""
 
+        #get data from response.
+        self.driver.get(response.url)
+        #this javascript code allow to retrieve all the data in scroll height.
         last_height = self.driver.execute_script("return document.body.scrollHeight")
+        #condition of scrolling.
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(3)
@@ -309,20 +344,23 @@ class CarSpider(scrapy.Spider):
             if new_height == last_height:
                 break
             last_height = new_height
-
+        #select page source
         selector = Selector(text=self.driver.page_source)
+
+        #extract the car link with xpath.
         car_links = selector.xpath('//div[@class="bama-adlist-container"]//a/@href').extract()
 
         for link in car_links:
             time.sleep(2)
             yield response.follow(link, callback=self.parse_car)
-
+        #pagination handling.
         next_page = selector.xpath('//a[@class="next"]/@href').get()
         if next_page:
             next_page_url = response.urljoin(next_page)
             yield scrapy.Request(url=next_page_url, callback=self.parse)
 
     def parse_car(self, response):
+        """The purpose of this function is to parse and separate data by xpath from response to show in result."""
         model = response.xpath('normalize-space(//h1[@class="bama-ad-detail-title__title"])').get()
         price = response.xpath(
             'normalize-space(//div[@class="bama-ad-detail-price__section"]//span[@class="bama-ad-detail-price__price-text"])').get()
@@ -336,7 +374,8 @@ class CarSpider(scrapy.Spider):
 
 
 class BamaCarSpider(scrapy.Spider):
-    name = "bama_cars"
+    """The purpose of this class in crawling website."""
+    name = "bama_cars"   #name of bot for running crawling.
     allowed_domains = ["bama.ir"]
     api_url = "https://bama.ir/cad/api/search?vehicle={brand}&pageIndex={page}"
 
@@ -344,15 +383,18 @@ class BamaCarSpider(scrapy.Spider):
     brands = ['bmw', 'benz', 'peugeot', 'kia']
 
     def start_requests(self):
+        """This function send request for each brand."""
         for brand in self.brands:
             url = self.api_url.format(brand=brand, page=1)
             yield scrapy.Request(url, callback=self.parse, meta={'brand': brand, 'page': 1})
 
 
     def parse(self, response):
+        """This function parse the response of request."""
         data = json.loads(response.body)
         ads = data.get('data', {}).get('ads', [])
 
+        #move to each item to get data we need.
         for ad in ads:
             yield {
                 'brand': response.meta['brand'],
@@ -365,6 +407,7 @@ class BamaCarSpider(scrapy.Spider):
                 'color': ad['detail'].get('color', 'N/A'),
             }
 
+        #get the pagination data
         total_pages = data['metadata']['total_pages']
         current_page = response.meta['page']
         if current_page < total_pages:
@@ -372,6 +415,7 @@ class BamaCarSpider(scrapy.Spider):
             next_page_url = self.api_url.format(brand=response.meta['brand'], page=next_page)
             yield scrapy.Request(next_page_url, callback=self.parse, meta={'brand': response.meta['brand'], 'page': next_page})
         else:
+            #move to next brand
             current_brand = response.meta['brand']
             next_brand_index = self.brands.index(current_brand) + 1
             if next_brand_index < len(self.brands):
@@ -383,12 +427,14 @@ class BamaCarSpider(scrapy.Spider):
 
 # my first crawling
 class PricingCarSpider(scrapy.Spider):
+    """This class is my first crawler that uses get data from element of css in inspect according the address I provided fo it."""
     name = 'car_spider'
     allowed_domains = ['www.khodro45.com']
     start_urls = ['https://www.khodro45.com/pricing']
 
 
     def parse(self, response):
+        """parse the data by using css extractor address."""
         for box_pricing in response.css('div.pricing-box'):
             for row in box_pricing.css('div.d-block'):
                 model = row.css('div.item__right::text').get()
@@ -399,6 +445,7 @@ class PricingCarSpider(scrapy.Spider):
                         'model': model.strip(),
                         'price': price.strip(),
                     }
+        #pagination
         next_page = response.css('a.next::attr(href)').get()
         if next_page:
             yield response.follow(next_page, callback=self.parse)
@@ -407,10 +454,12 @@ class PricingCarSpider(scrapy.Spider):
 
 #crawl with using link extractor
 class PricingSpider(scrapy.Spider):
+    """In this class it uses xpath to receive data which I want."""
     name = 'pricing_spider'
     allowed_domains = ['www.khodro45.com']
     start_urls = ['https://www.khodro45.com/pricing']
 
+    #use the LinkExtractor
     rules = (
         Rule(LinkExtractor(restrict_xpaths='//div[@class="pricing-box"]//a'), callback='parse_pricing', follow=False),
         Rule(LinkExtractor(restrict_xpaths='//a[@class="next"]'), follow=True),
@@ -418,6 +467,7 @@ class PricingSpider(scrapy.Spider):
 
 
     def parse_pricing(self, response):
+        """this function parse the data by using xpath."""
         model = response.xpath('//title/text()').get()
         price = response.xpath(
              '//div[@class="d-inline-flex align-items-center justify-content-end flex-wrap"]/div[@class="text-16 font-weight-bold"]/text()').get()
