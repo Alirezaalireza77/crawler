@@ -168,21 +168,21 @@ class DivarSpider(scrapy.Spider):
 
         if self.brand_queue:
             first_brand = self.brand_queue.pop(0)
-            yield self.make_request_for_brand(1, 1, first_brand, None, None)  # Start with page 1, layer_page 1, no last_post_date
+            yield self.make_request_for_brand(1, 1, first_brand, None, None)
         else:
             self.logger.error("No brands found")
 
     def make_request_for_brand(self, page, layer_page, brand, last_post_date, search_uid):
-        # Include search_uid, layer_page, and last_post_date in the payload
+
         payload = {
             "city_ids": ["6"],
             "pagination_data": {
                 "@type": "type.googleapis.com/post_list.PaginationData",
-                "last_post_date": last_post_date,  # Set this to None for the first page
+                "last_post_date": last_post_date,
                 "layer_page": layer_page,
                 "page": page
             },
-            "search_uid": search_uid,  # Include search_uid to track the search session
+            "search_uid": search_uid,
             "search_data": {
                 "form_data": {
                     "data": {
@@ -250,7 +250,7 @@ class DivarSpider(scrapy.Spider):
             if self.brand_queue:
                 next_brand = self.brand_queue.pop(0)
                 yield self.make_request_for_brand(1, 1, next_brand, None,
-                                                  None)  # Reset page and layer_page for the next brand
+                                                  None)
             else:
                 self.logger.info("All brands processed")
 
