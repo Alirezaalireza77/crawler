@@ -492,7 +492,7 @@ class PhoneSpider(scrapy.Spider):
     name = "phone"
     allowed_domains = ["api.divar.ir"]
     brand_queue = []
-    Authorization_token = 'Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWQiOiJkNjQ0MGIzOS1kNjE4LTQzNDItYmFiZi0xMjYyOTIyOTU2MTQiLCJ1c2VyLXR5cGUiOiJwZXJzb25hbCIsInVzZXItdHlwZS1mYSI6Ilx1MDY3ZVx1MDY0Nlx1MDY0NCBcdTA2MzRcdTA2MmVcdTA2MzVcdTA2Y2MiLCJ1aWQiOiJhOTdiNzE5YS04NjQxLTQwMmQtOTY3OS1jNWMxZmY0ZGE0OWMiLCJ1c2VyIjoiMDkzMDc4NjM4MjAiLCJpc3MiOiJhdXRoIiwidmVyaWZpZWRfdGltZSI6MTcyOTA3Mzg3OSwiaWF0IjoxNzI5MDczODc5LCJleHAiOjE3MzY4NDk4Nzl9.sFknqXHX6GTLuqwAHEzXLXrqNlSEPH0CEwEOqVPQBdM'
+    Authorization_token = 'Your token'
 
     def start_requests(self):
         url = 'https://api.divar.ir/v8/postlist/w/filters'
