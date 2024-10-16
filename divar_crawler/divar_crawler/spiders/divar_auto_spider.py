@@ -488,12 +488,11 @@ class PricingSpider(scrapy.Spider):
 
 
 
-class DivarPhoneSpider(scrapy.Spider):
+class PhoneSpider(scrapy.Spider):
     name = "phone"
     allowed_domains = ["api.divar.ir"]
     brand_queue = []
     Authorization_token = 'Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWQiOiJkNjQ0MGIzOS1kNjE4LTQzNDItYmFiZi0xMjYyOTIyOTU2MTQiLCJ1c2VyLXR5cGUiOiJwZXJzb25hbCIsInVzZXItdHlwZS1mYSI6Ilx1MDY3ZVx1MDY0Nlx1MDY0NCBcdTA2MzRcdTA2MmVcdTA2MzVcdTA2Y2MiLCJ1aWQiOiJhOTdiNzE5YS04NjQxLTQwMmQtOTY3OS1jNWMxZmY0ZGE0OWMiLCJ1c2VyIjoiMDkzMDc4NjM4MjAiLCJpc3MiOiJhdXRoIiwidmVyaWZpZWRfdGltZSI6MTcyOTA3Mzg3OSwiaWF0IjoxNzI5MDczODc5LCJleHAiOjE3MzY4NDk4Nzl9.sFknqXHX6GTLuqwAHEzXLXrqNlSEPH0CEwEOqVPQBdM'
-
 
     def start_requests(self):
         url = 'https://api.divar.ir/v8/postlist/w/filters'
@@ -556,13 +555,14 @@ class DivarPhoneSpider(scrapy.Spider):
             self.logger.error("No brands found")
 
     def make_request_for_brand(self, page, layer_page, brand, last_post_date, search_uid):
+
         payload = {
             "city_ids": ["6"],
             "pagination_data": {
                 "@type": "type.googleapis.com/post_list.PaginationData",
                 "last_post_date": last_post_date,
                 "layer_page": layer_page,
-                "page": "page"
+                "page": page
             },
             "search_uid": search_uid,
             "search_data": {
@@ -602,16 +602,17 @@ class DivarPhoneSpider(scrapy.Spider):
         for item in data.get('list_widgets', []):
             if item.get('widget_type') == 'POST_ROW':
                 car_data = item['data']
+                action_data = car_data.get('action', {}).get('payload', {})
                 title = car_data.get('title')
                 price = car_data.get('middle_description_text', 'N/A')
                 mileage = car_data.get('top_description_text', 'N/A')
                 location = car_data.get('bottom_description_text', 'N/A')
                 image_url = car_data.get('image_url')
-                post_id = car_data.get('payload', {}).get('token')
+                token = action_data.get('token')
 
-                if post_id:
+                if token:
                     yield scrapy.Request(
-                        url=f'https://api.divar.ir/v8/postcontact/web/contact_info/{post_id}',
+                        url=f'https://api.divar.ir/v8/postcontact/web/contact_info/{token}',
                         method='GET',
                         headers={'Content-Type': 'application/json',
                                  'Authorization': self.Authorization_token,
@@ -623,7 +624,8 @@ class DivarPhoneSpider(scrapy.Spider):
                             'price': price,
                             'mileage': mileage,
                             'location': location,
-                            'image_url': image_url
+                            'image_url': image_url,
+                            'token': token
                         }
                     )
 
@@ -651,6 +653,7 @@ class DivarPhoneSpider(scrapy.Spider):
         mileage = response.meta['mileage']
         location = response.meta['location']
         image_url = response.meta['image_url']
+        token = response.meta['token']
 
         contact_data = response.json()
         widget_list = contact_data.get('widget_list', [])
@@ -669,7 +672,6 @@ class DivarPhoneSpider(scrapy.Spider):
             'mileage': mileage,
             'location': location,
             'image_url': image_url,
+            'token': token,
             'phone_number': phone_number
         }
-
-
