@@ -675,3 +675,149 @@ class PhoneSpider(scrapy.Spider):
             'token': token,
             'phone_number': phone_number
         }
+
+
+
+
+class DivarCarSpider(scrapy.Spider):
+
+    name = "divar_with_phone"
+    allowed_domains = ["api.divar.ir"]
+    start_urls = ['https://api.divar.ir/v8/postlist/w/search']
+    Authorization_token = " "
+    def __init__(self, *args, **kwargs):
+        super(DivarCarSpider, self).__init__(*args, **kwargs)
+        self.brands = [
+            "Audi", "Arisan", "Ario", "Alfa Romeo", "Amico", "Opel", "SWM", "SKYWELL", "Smart", "Škoda", "Oldsmobile",
+            "MG", "MVM", "Iran Khodro", "Isuzu", "XTRIM", "inroads", "Iveco", "BAIC", "Brilliance", "Besturn",
+            "Bestune", "Mercedes-Benz", "Borgward", "BAC", "BMW", "BISU", "BYD", "Buick", "PARS KHODRO", "Pazhan",
+            "Pride", "Proton", "Peugeot", "Porsche", "Pontiac", "Paykan", "Tara", "Toyota", "Tiba", "Tigard", "Jetour",
+            "JAC", "Jaguar", "Joylong", "JMC", "GAC Gonow", "Jeep", "Geely", "Changan", "Chery", "Datsun", "Domy",
+            "Dongfeng", "Dayun", "Daihatsu", "Delica", "Dena", "Dodge", "Daewoo", "DS", "Dignity", "Deer", "Runna",
+            "Rayen", "Renault", "Rollsroyce", "Rich", "Respect", "Rigan", "Zamyad", "ZX_AUTO", "Zotye", "SsangYong",
+            "Saipa", "Saina", "Seat", "Samand", "Soueast", "Subaru", "Suzuki", "Citroen", "Sinad", "Sinogold", "Shahin",
+            "Chevrolet", "Farda", "Foton", "Ford", "Volkswagen", "Fownix", "Fiat", "Fidelity", "Capra", "Chrysler",
+            "Quick", "KG Mobility", "Kia", "KMC", "Great-Wall", "Gac", "Qingling", "Lada", "Lamari", "Lamborghini",
+            "Lexus", "Land Rover", "Landmark", "Lotus", "LUCANO", "Luxgen", "Lifan", "Maserati", "Mazda", "Maxmotor",
+            "Maxus", "Mitsubishi", "MINI", "NETA", "Nissan", "Volvo", "IranKhodro Van", "Faw", "Narvan", "Venucia",
+            "VGV", "Hafei Lobo", "Hummer", "Haval", "Haima", "Hanteng", "Honda", "Hongqi", "Hillman", "Hyosow",
+            "Hyundai", "Uaz", "other"
+        ]
+
+        self.current_brand_index = 0
+
+    def start_requests(self):
+        yield self.make_request_for_brand(1, 0)
+
+    def make_request_for_brand(self, page, layer_page, last_post_date=None, search_uid=None):
+        if self.current_brand_index >= len(self.brands):
+            self.logger.info("All brands processed.")
+            return
+
+        brand = self.brands[self.current_brand_index]
+        payload = {
+            "city_ids": ["6"],
+            "pagination_data": {
+                "@type": "type.googleapis.com/post_list.PaginationData",
+                "last_post_date": last_post_date,
+                "layer_page": layer_page,
+                "page": page
+            },
+            "search_uid": search_uid,
+            "search_data": {
+                "form_data": {
+                    "data": {
+                        "brand_model": {
+                            "repeated_string": {
+                                "value": [brand]
+                            }
+                        },
+                        "category": {
+                            "str": {"value": "light"}
+                        }
+                    }
+                }
+            },
+            "sort": {"str": {"value": "sort_date"}}
+        }
+
+
+        return scrapy.Request(
+            url='https://api.divar.ir/v8/postlist/w/search',
+            method="POST",
+            body=json.dumps(payload),
+            headers={'Content-Type': 'application/json'},
+            callback=self.parse,
+            meta={
+                'brand': brand,
+                'page': page,
+                'layer_page': layer_page,
+                'last_post_date': last_post_date,
+                'search_uid': search_uid
+            }
+        )
+
+
+    def parse(self, response):
+        brand = response.meta['brand']
+        page = response.meta['page']
+        layer_page = response.meta['layer_page']
+        last_post_date = response.meta['last_post_date']
+        search_uid = response.meta['search_uid']
+
+        data = response.json()
+
+        for item in data.get('list_widgets', []):
+            if item.get('widget_type') == 'POST_ROW':
+                car_data = item.get('data', {})
+                action_data = car_data.get('action', {}).get('payload', {})
+                token = action_data.get('token')
+
+                yield {
+                    'brand': brand,
+                    'title': car_data.get('title'),
+                    'price': car_data.get('middle_description_text', 'N/A'),
+                    'mileage': car_data.get('top_description_text', 'N/A'),
+                    'location': car_data.get('bottom_description_text', 'N/A'),
+                    'image_url': car_data.get('image_url'),
+                }
+
+                if token:
+                    yield scrapy.Request(
+                        url=f'https://api.divar.ir/v8/postcontact/web/contact_info/{token}',
+                        method='GET',
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Authorization': self.Authorization_token,
+                        },
+                        callback=self.parse_contact_info,
+                        meta={'brand': brand, 'token': token}
+                    )
+
+        pagination_data = data.get('pagination', {}).get('data', {})
+        new_last_post_date = pagination_data.get('last_post_date')
+        has_next_page = data.get('pagination', {}).get('has_next_page')
+        new_search_uid = data.get('search_uid', search_uid)
+
+        if has_next_page:
+            next_page = page + 1
+            yield self.make_request_for_brand(next_page, layer_page, new_last_post_date, new_search_uid)
+        else:
+            self.current_brand_index += 1
+            yield self.make_request_for_brand(1, 0)
+
+    def parse_contact_info(self, response):
+        brand = response.meta['brand']
+        contact_data = response.json()
+        phone_number = None
+
+        for widget in contact_data.get('widget_list', []):
+            if widget.get('widget_type') == 'UNEXPANDABLE_ROW':
+                data = widget.get('data', {})
+                if data.get('title') == "شمارهٔ موبایل":
+                    phone_number = data.get('value')
+
+        yield {
+            'brand': brand,
+            'phone_number': phone_number
+        }
