@@ -123,3 +123,11 @@ AUTOTHROTTLE_MAX_DELAY = 10
 #     'divar_crawler.middlewares.DuplicatesMiddleware': 543,
 # }
 
+#proxy list with using rotate scrapy
+# ROTATING_PROXY_LIST = [
+#     'http://username:password@pr.oxylabs.io:7777',
+#     'http://username:password@dc.pr.oxylabs.io:10000',
+#     'http://username:password@Specific_IP_1:60000',
+#     'http://username:password@Specific_IP_2:60000',
+#     'http://username:password@Specific_IP_N:60000'
+# ]

@@ -131,3 +131,9 @@ class DivarCrawlerDownloaderMiddleware:
 #
 #     def is_url_crawled(self, url):
 #         return url in self.crawled_urls
+
+
+# DOWNLOADER_MIDDLEWARES = {
+#     'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+#     'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+# }
