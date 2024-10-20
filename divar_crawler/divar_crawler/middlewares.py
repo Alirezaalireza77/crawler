@@ -117,7 +117,17 @@ class DivarCrawlerDownloaderMiddleware:
 #
 #
 # class DuplicatesMiddleware:
+#     def __init__(self):
+#         self.crawled_urls = set()
+#
 #     def process_request(self, request, spider):
 #         url = request.url
-#         if spider.is_url_crawled(url):
+#         if self.is_url_crawled(url):
 #             raise IgnoreRequest(f"Skipping already crawled URL: {url}")
+#
+#     def process_response(self, request, response, spider):
+#         self.crawled_urls.add(request.url)
+#         return response
+#
+#     def is_url_crawled(self, url):
+#         return url in self.crawled_urls

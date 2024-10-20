@@ -118,3 +118,8 @@ AUTOTHROTTLE_MAX_DELAY = 10
 # RETRY_ENABLED = True
 # RETRY_TIMES = 3
 # RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429, 400]
+
+# DOWNLOADER_MIDDLEWARES = {
+#     'divar_crawler.middlewares.DuplicatesMiddleware': 543,
+# }
+
