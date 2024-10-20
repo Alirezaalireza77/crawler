@@ -100,3 +100,21 @@ DOWNLOAD_DELAY = 1
 AUTOTHROTTLE_ENABLED = True
 AUTOTHROTTLE_START_DELAY = 1
 AUTOTHROTTLE_MAX_DELAY = 10
+
+#////for proxy setting to avoiding identify my ip
+# PROXY_LIST = ['198.199.86.11:3128',
+#               '103.124.196.130:8080',
+#               '181.10.230.226:999',
+#               '36.255.84.69:83',
+#               '202.154.18.12:8080',
+#               '78.28.152.113:80',
+#               '111.59.4.88:9002',
+# ]
+#
+# DOWNLOADER_MIDDLEWARES = {
+#     'divar_crawler.middlewares.RandomProxyMiddleware': 610,
+#     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+# }
+# RETRY_ENABLED = True
+# RETRY_TIMES = 3
+# RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429, 400]

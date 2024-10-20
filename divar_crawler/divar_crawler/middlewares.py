@@ -2,9 +2,9 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-
 from scrapy import signals
-
+import random
+from scrapy.exceptions import IgnoreRequest
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 
@@ -101,3 +101,23 @@ class DivarCrawlerDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+#////for proxy and avoiding duplicate
+# class RandomProxyMiddleware:
+#     def __init__(self, settings):
+#         self.proxies = settings.get('PROXY_LIST')
+#
+#     @classmethod
+#     def from_crawler(cls, crawler):
+#         return cls(crawler.settings)
+#
+#     def process_request(self, request, spider):
+#         proxy = random.choice(self.proxies)
+#         request.meta['proxy'] = proxy
+#
+#
+# class DuplicatesMiddleware:
+#     def process_request(self, request, spider):
+#         url = request.url
+#         if spider.is_url_crawled(url):
+#             raise IgnoreRequest(f"Skipping already crawled URL: {url}")
