@@ -821,3 +821,69 @@ class DivarCarSpider(scrapy.Spider):
             'brand': brand,
             'phone_number': phone_number
         }
+
+
+class BamaSpider(scrapy.Spider):
+    name = 'bama'
+    allowed_domains = ['https://bama.ir/cad/api/filter/all?pageIndex=1']
+
+
+    def parse_filter(self, response):
+        data = json.loads(response.text)
+        if data['status']:
+            companies = data['data']['companies']
+            for company in companies:
+                brand_value = company['value']
+
+                yield scrapy.Request(
+                    url = f'https://bama.ir/cad/api/search?pageIndex=1',
+                    meta={'brand': brand_value, 'page_index':1},
+                    callback=self.parse_cars
+                )
+
+    def parse_cars(self, response):
+        brand = response.meta['brand']
+        page = response.meta['page_index']
+        data = json.loads(response.text)
+        if data['status']:
+            cars = data['data']['ads']
+            total_page = data['metadata']['total_page']
+            for car in cars:
+                car_code = car['detail']['code']
+
+                yield scrapy.Request(
+                    url = f"https://bama.ir/cad/api/detail/{car_code}",
+                    meta={'brand': brand, 'page_index':page, 'car_code': car_code},
+                    callback=self.car_details,
+                )
+            if page < total_page:
+                next_page = page + 1
+                yield scrapy.Request(
+                    url = f"https://bama.ir/cad/api/search?pageIndex={next_page}",
+                    meta = {'brand': brand, 'page_index':next_page},
+                    callback=self.parse_cars
+                )
+
+
+    def car_details(self, response):
+        brand = response.meta['brand']
+        car_code = response.meta['car_code']
+        car_data = json.loads(response.text)
+        if car_data['status']:
+            car_detail = car_data['data']['detail']
+            title = car_detail.get('title')
+            subtitle = car_detail.get('subtitle')
+            price = car_data['data'].get('price',{}).get('price')
+            mileage = car_detail.get('mileage')
+            transmission = car_detail.get('transmission')
+            location = car_detail.get('location')
+
+            yield {
+                'brand': brand,
+                'title': title,
+                'subtitle': subtitle,
+                'price': price,
+                'mileage': mileage,
+                'location': location,
+                'transmission': transmission,
+            }
